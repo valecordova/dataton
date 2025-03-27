@@ -1,5 +1,5 @@
 from datetime import datetime, timedelta, timezone
-from typing import Annotated
+from typing import Annotated, Optional
 from sqlalchemy import Column, Float, String, Text
 from sqlalchemy.ext.declarative import declarative_base
 import jwt
@@ -117,8 +117,20 @@ class EntropyCreate(BaseModel):
     assigned: bool = False
     annotated: bool = False
 
-class EntropyRead(EntropyCreate):
-    pass  # No necesita campos adicionales
+class EntropyRead(BaseModel):
+    conversation_id: str
+    tutor_identity: Optional[str]
+    entropy: float
+    assigned: bool
+    annotated: Optional[bool]
+
+    class Config:
+        from_attributes = True
+
+class EntropyT(BaseModel):
+    a: EntropyRead
+    b: EntropyRead
+    c: EntropyRead
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
@@ -372,7 +384,8 @@ async def delete_entropy(conversation_id: str, tutor_identity: str, db: Session 
     db.commit()
     return {"msg": "Entropy entry deleted successfully"}
 
-@app.get("/entropies/highest/", response_model=EntropyRead)
+
+@app.get("/entropies/highest/", response_model=EntropyT)
 async def get_highest_entropy(db: Session = Depends(get_db)):
     # Get the top 3 highest entropy entries that are not assigned
     highest_entropies = (
@@ -383,8 +396,8 @@ async def get_highest_entropy(db: Session = Depends(get_db)):
         .all()
     )
 
-    if not highest_entropies:
-        raise HTTPException(status_code=404, detail="No available entropy entries")
+    if len(highest_entropies) < 3:
+        raise HTTPException(status_code=404, detail="Not enough available entropy entries")
 
     # Mark them as assigned
     for entropy in highest_entropies:
@@ -397,7 +410,12 @@ async def get_highest_entropy(db: Session = Depends(get_db)):
     for entropy in highest_entropies:
         db.refresh(entropy)
 
-    return highest_entropies
+    # ✅ Return the top 3 structured in the EntropyT model
+    return EntropyT(
+        a=EntropyRead.model_validate(highest_entropies[0]),
+        b=EntropyRead.model_validate(highest_entropies[1]),
+        c=EntropyRead.model_validate(highest_entropies[2]),
+    )
 
 
 # @app.post("/register-anotator", response_model=User)
