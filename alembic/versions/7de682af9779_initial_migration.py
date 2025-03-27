@@ -51,12 +51,13 @@ def upgrade() -> None:
 
     # Create entropies table
     op.create_table('entropies',
+        sa.Column('ide', sa.Integer(), nullable=False, autoincrement=True),
         sa.Column('conversation_id', sa.String(255), nullable=False),
         sa.Column('tutor_identity', sa.String(255), nullable=True),
         sa.Column('entropy', sa.Float(), nullable=False),
         sa.Column('assigned', sa.Boolean(), nullable=False, server_default='false'),
         sa.Column('annotated', sa.Boolean(), nullable=False, server_default='false'),
-        sa.PrimaryKeyConstraint('conversation_id')
+        sa.PrimaryKeyConstraint('ide')
     )
     # ### end Alembic commands ###
 

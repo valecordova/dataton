@@ -50,7 +50,8 @@ class Conversation(Base):
     
 class Entropy(Base):
     __tablename__ = "entropies"
-    conversation_id = Column(String(255), primary_key=True, index=True)
+    ide = Column(Integer, primary_key=True, index=True, autoincrement=True)
+    conversation_id = Column(String(255), index=True)
     tutor_identity = Column(String(255), nullable=True)
     entropy = Column(Float, nullable=False)
     assigned = Column(Boolean, default=False)
@@ -155,6 +156,20 @@ def create_access_token(data: dict, expires_delta: timedelta | None = None):
     expire = datetime.now(timezone.utc) + (expires_delta or timedelta(minutes=15))
     to_encode.update({"exp": expire})
     return jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
+
+
+
+# @lru_cache()
+# def get_settings():
+#     return Settings()
+
+# @app.middleware("http")
+# async def validate_host(request, call_next):
+#     settings = get_settings()
+#     host = request.headers.get("host", "").split(":")[0]
+#     if settings.debug or host in settings.allowed_hosts:
+#         return await call_next(request)
+#     raise HTTPException(status_code=400, detail="Invalid host")
 
 # ========================
 # ENDPOINTS AUTENTICACIÓN
