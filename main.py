@@ -374,20 +374,61 @@ async def delete_entropy(conversation_id: str, tutor_identity: str, db: Session 
 
 @app.get("/entropies/highest/", response_model=EntropyRead)
 async def get_highest_entropy(db: Session = Depends(get_db)):
-    # Get the highest entropy entry that is not assigned
-    highest_entropy = (
+    # Get the top 3 highest entropy entries that are not assigned
+    highest_entropies = (
         db.query(Entropy)
         .filter(Entropy.assigned == False)
         .order_by(Entropy.entropy.desc())
-        .first()
+        .limit(3)  # Fetch top 3
+        .all()
     )
 
-    if not highest_entropy:
-        raise HTTPException(status_code=404, detail="No available entropy entry")
+    if not highest_entropies:
+        raise HTTPException(status_code=404, detail="No available entropy entries")
 
-    # Mark it as assigned
-    highest_entropy.assigned = True
+    # Mark them as assigned
+    for entropy in highest_entropies:
+        entropy.assigned = True
+    
+    # Commit the changes to the database
     db.commit()
-    db.refresh(highest_entropy)
 
-    return highest_entropy
+    # Refresh the entries to reflect the changes
+    for entropy in highest_entropies:
+        db.refresh(entropy)
+
+    return highest_entropies
+
+
+# @app.post("/register-anotator", response_model=User)
+# def register_user(user: UserCreate, db: Session = Depends(get_db)):
+#     # Verifica si el usuario ya existe
+#     db_user = db.query(UserDB).filter(UserDB.username == user.username).first()
+#     if db_user:
+#         raise HTTPException(status_code=400, detail="Username already registered")
+    
+#     # Hashea el password
+#     hashed_password = get_password_hash(user.password)
+#     db_user = UserDB(
+#         username=user.username,
+#         hashed_password=hashed_password,
+#         role=user.role
+#     )
+#     db.add(db_user)
+#     db.commit()
+#     db.refresh(db_user)
+
+#     # 🚀 Obtener la entropía más alta disponible
+#     highest_entropy = (
+#         db.query(Entropy)
+#         .filter(Entropy.assigned == False)  # Solo las que no están asignadas
+#         .order_by(Entropy.entropy.desc())  # Ordenadas por valor de entropía
+#         .first()
+#     )
+
+#     if highest_entropy:
+#         highest_entropy.assigned = True
+#         db.commit()
+#         db.refresh(highest_entropy)
+
+#     return db_user
